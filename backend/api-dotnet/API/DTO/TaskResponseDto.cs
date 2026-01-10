@@ -6,7 +6,7 @@ namespace api_dotnet.API.DTO
     {
         public int Id { get; set; }
         public string Title { get; set; } = null!;
-        public string Status { get; set; } = null!;
+        public WorkStatus Status { get; set; }
         public int? AssignedUserId { get; set; }
         public string? AssignedUserName { get; set; }
         public bool IsBlocked { get; set; }
@@ -18,7 +18,7 @@ namespace api_dotnet.API.DTO
             {
                 Id = task.Id,
                 Title = task.Title,
-                Status = task.Status.ToString(),
+                Status = task.Status,
                 AssignedUserId = task.AssignedUserId,
                 AssignedUserName = task.AssignedUser?.Name ?? "Não atribuída",
                 IsBlocked = task.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),

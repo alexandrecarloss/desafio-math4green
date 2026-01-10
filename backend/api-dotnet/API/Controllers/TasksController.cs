@@ -30,7 +30,7 @@ public class TasksController : ControllerBase
             {
                 Id = t.Id,
                 Title = t.Title,
-                Status = t.Status.ToString(),
+                Status = t.Status,
                 AssignedUserId = t.AssignedUserId,
                 AssignedUserName = t.AssignedUser != null ? t.AssignedUser.Name : "Não atribuída",
                 IsBlocked = t.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),
