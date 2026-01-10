@@ -15,6 +15,7 @@ namespace api_dotnet.Domain.Entities
         public int Id { get; private set; }
         public string Title { get; private set; } = null!;
         public WorkStatus Status { get; private set; }
+        public bool IsBlocked => Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done);
 
         public int? AssignedUserId { get; private set; }
         public User? AssignedUser { get; private set; }
@@ -64,6 +65,36 @@ namespace api_dotnet.Domain.Entities
                 return;
 
             Dependencies.Add(new TaskDependency(this, prerequisite));
+        }
+
+        public void ChangeTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new DomainException("Título inválido");
+
+            Title = title;
+        }
+
+        public void UpdateStatus(WorkStatus newStatus)
+        {
+            switch (newStatus)
+            {
+                case WorkStatus.Pending:
+                    if (Status != WorkStatus.Pending)
+                        throw new DomainException("Não é possível voltar para Pendente.");
+                    break;
+
+                case WorkStatus.InProgress:
+                    Start();
+                    break;
+
+                case WorkStatus.Done:
+                    Complete();
+                    break;
+
+                default:
+                    throw new DomainException("Status inválido");
+            }
         }
 
     }

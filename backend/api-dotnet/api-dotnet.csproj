@@ -15,12 +15,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="API\Controllers\" />
     <Folder Include="Application\" />
-    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>
