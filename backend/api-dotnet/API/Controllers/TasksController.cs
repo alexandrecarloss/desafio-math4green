@@ -45,10 +45,7 @@ public class TasksController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var task = await _context.Tasks
-            .Include(t => t.AssignedUser)
-            .Include(t => t.Dependencies).ThenInclude(d => d.PrerequisiteTask)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var task = await _context.Tasks.FindAsync(id);
 
         if (task == null) return NotFound();
 
@@ -73,14 +70,17 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Update(int id, UpdateTaskDto dto)
     {
         var task = await _context.Tasks
-            .Include(t => t.Dependencies).ThenInclude(d => d.PrerequisiteTask)
+            .Include(t => t.AssignedUser)
+            .Include(t => t.Dependencies)
+                .ThenInclude(d => d.PrerequisiteTask)
             .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null) return NotFound();
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(dto.Title)) task.ChangeTitle(dto.Title);
+            if (!string.IsNullOrWhiteSpace(dto.Title))
+                task.ChangeTitle(dto.Title);
 
             if (dto.AssignedUserId.HasValue && task.AssignedUserId != dto.AssignedUserId)
             {
@@ -88,7 +88,7 @@ public class TasksController : ControllerBase
                     .Include(u => u.Tasks)
                     .FirstOrDefaultAsync(u => u.Id == dto.AssignedUserId.Value);
 
-                if (user == null) return BadRequest(new { message = "Usuário não encontrado." });
+                if (user == null) return BadRequest("Usuário não encontrado.");
 
                 task.AssignTo(user);
             }
@@ -97,14 +97,6 @@ public class TasksController : ControllerBase
             {
                 if (dto.Status == WorkStatus.InProgress)
                 {
-                    var hasActiveTask = await _context.Tasks.AnyAsync(t =>
-                        t.AssignedUserId == task.AssignedUserId &&
-                        t.Status == WorkStatus.InProgress &&
-                        t.Id != task.Id);
-
-                    if (hasActiveTask)
-                        return BadRequest(new { message = "Usuário já possui uma tarefa em andamento (Multitasking Proibido)." });
-
                     task.Start();
                 }
                 else if (dto.Status == WorkStatus.Done)
@@ -119,12 +111,14 @@ public class TasksController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            var updatedTask = await _context.Tasks
-                .Include(t => t.AssignedUser)
-                .Include(t => t.Dependencies).ThenInclude(d => d.PrerequisiteTask)
-                .FirstAsync(t => t.Id == task.Id);
-
-            return Ok(TaskResponseDto.FromEntity(updatedTask));
+            return Ok(new TaskResponseDto
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Status = task.Status.ToString(),
+                IsBlocked = task.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),
+                AssignedUserName = task.AssignedUser?.Name
+            });
         }
         catch (DomainException ex)
         {
@@ -137,18 +131,12 @@ public class TasksController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var task = await _context.Tasks
-            .Include(t => t.Dependencies)      
-            .Include(t => t.IsPrerequisiteFor) 
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var task = await _context.Tasks.FindAsync(id);
 
-        if (task == null) return NotFound();
-
-        _context.Set<TaskDependency>().RemoveRange(task.Dependencies);
-        _context.Set<TaskDependency>().RemoveRange(task.IsPrerequisiteFor);
+        if (task == null)
+            return NotFound();
 
         _context.Tasks.Remove(task);
-
         await _context.SaveChangesAsync();
 
         return NoContent();
