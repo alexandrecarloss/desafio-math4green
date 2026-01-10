@@ -1,0 +1,71 @@
+﻿using api_dotnet.Domain.Exceptions;
+
+namespace api_dotnet.Domain.Entities
+{
+    public class TaskItem
+    {
+        protected TaskItem() { }
+
+        public TaskItem(string title)
+        {
+            Title = title;
+            Status = WorkStatus.Pending;
+        }
+
+        public int Id { get; private set; }
+        public string Title { get; private set; } = null!;
+        public WorkStatus Status { get; private set; }
+
+        public int? AssignedUserId { get; private set; }
+        public User? AssignedUser { get; private set; }
+
+        public ICollection<TaskDependency> Dependencies { get; private set; } = new List<TaskDependency>();
+        public ICollection<TaskDependency> IsPrerequisiteFor { get; private set; } = new List<TaskDependency>();
+
+        public void AssignTo(User user)
+        {
+            AssignedUser = user;
+            AssignedUserId = user.Id;
+        }
+
+        public void Start()
+        {
+            if (AssignedUser == null)
+                throw new DomainException("Tarefa não atribuída.");
+
+            if (AssignedUser.HasTaskInProgress())
+                throw new DomainException("Usuário já possui uma tarefa em andamento.");
+
+            if (Status != WorkStatus.Pending)
+                throw new DomainException("Somente tarefas pendentes podem ser iniciadas.");
+
+            if (Dependencies.Any(d => !d.PrerequisiteTask.IsCompleted()))
+                throw new DomainException("Existem dependências pendentes.");
+
+            Status = WorkStatus.InProgress;
+        }
+
+        public void Complete()
+        {
+            if (Status != WorkStatus.InProgress)
+                throw new DomainException("Somente tarefas em andamento podem ser concluídas.");
+
+            Status = WorkStatus.Done;
+        }
+
+        public bool IsCompleted() => Status == WorkStatus.Done;
+
+        public void AddDependency(TaskItem prerequisite)
+        {
+            if (prerequisite.Id == this.Id)
+                throw new DomainException("Uma tarefa não pode depender de si mesma.");
+
+            if (Dependencies.Any(d => d.PrerequisiteTaskId == prerequisite.Id))
+                return;
+
+            Dependencies.Add(new TaskDependency(this, prerequisite));
+        }
+
+    }
+
+}
