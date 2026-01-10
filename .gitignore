@@ -1,0 +1,54 @@
+# ============================
+# Visual Studio
+# ============================
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VSCode
+.idea/
+.vscode/
+
+# ============================
+# Build do .NET
+# ============================
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+
+# ============================
+# ASP.NET Core
+# ============================
+appsettings.Development.json
+appsettings.Production.json
+
+# ============================
+# Logs
+# ============================
+*.log
+
+# ============================
+# Windows
+# ============================
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================
+# Frontend
+# ============================
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+
+# ============================
+# Outros
+# ============================
+.DS_Store
