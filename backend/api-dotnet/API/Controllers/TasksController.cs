@@ -115,7 +115,7 @@ public class TasksController : ControllerBase
             {
                 Id = task.Id,
                 Title = task.Title,
-                Status = task.Status.ToString(),
+                Status = task.Status,
                 IsBlocked = task.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),
                 AssignedUserName = task.AssignedUser?.Name
             });

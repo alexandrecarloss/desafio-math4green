@@ -13,6 +13,11 @@ builder.Services.AddControllers()
         );
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular",
+        policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -28,6 +33,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=tasks.db"));
 
 var app = builder.Build();
+app.UseCors("AllowAngular");
 
 if (app.Environment.IsDevelopment())
 {
