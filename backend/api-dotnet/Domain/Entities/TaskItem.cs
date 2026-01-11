@@ -23,8 +23,24 @@ namespace api_dotnet.Domain.Entities
         public ICollection<TaskDependency> Dependencies { get; private set; } = new List<TaskDependency>();
         public ICollection<TaskDependency> IsPrerequisiteFor { get; private set; } = new List<TaskDependency>();
 
-        public void AssignTo(User user)
+        public void AssignTo(User? user)
         {
+            if (user == null)
+            {
+                if (Status == WorkStatus.InProgress || Status == WorkStatus.Done)
+                {
+                    throw new DomainException($"Não é permitido remover o responsável de uma tarefa com status {Status}.");
+                }
+
+                AssignedUser = null;
+                AssignedUserId = null;
+                return;
+            }
+            if (Status == WorkStatus.InProgress && user.HasTaskInProgress())
+            {
+                throw new DomainException($"O usuário {user.Name} já possui uma tarefa em andamento.");
+            }
+
             AssignedUser = user;
             AssignedUserId = user.Id;
         }
@@ -48,6 +64,9 @@ namespace api_dotnet.Domain.Entities
 
         public void Complete()
         {
+            if (Dependencies.Any(d => !d.PrerequisiteTask.IsCompleted()))
+                throw new DomainException("Não é possível concluir: existem dependências pendentes.");
+
             if (Status != WorkStatus.InProgress)
                 throw new DomainException("Somente tarefas em andamento podem ser concluídas.");
 

@@ -1,1 +1,180 @@
-<p>task-list works!</p>
+<div class="header-actions">
+  <input
+    [(ngModel)]="newTaskTitle"
+    placeholder="Título da nova tarefa..."
+    (keyup.enter)="createTask()"
+  />
+  <button (click)="createTask()">Adicionar Tarefa</button>
+</div>
+
+<div class="kanban-container" cdkDropListGroup>
+  <div class="column">
+    <h3><i class="fa-solid fa-list-ul"></i> Pendentes</h3>
+    <div
+      cdkDropList
+      [cdkDropListData]="pendingTasks"
+      (cdkDropListDropped)="onDrop($event, 'Pending')"
+      class="task-list"
+    >
+      @for (task of pendingTasks; track task.id) {
+      <div class="task-card" [class.blocked]="task.isBlocked" cdkDrag (click)="openEditModal(task)">
+        <strong>{{ task.title }}</strong>
+        <button class="delete-btn" (click)="$event.stopPropagation(); deleteTask(task.id)">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+        @if (task.isBlocked) {
+        <div class="blocked-msg"><i class="fa-solid fa-lock"></i> Bloqueada</div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="column">
+    <h3><i class="fa-solid fa-person-digging"></i> Em Andamento</h3>
+    <div
+      cdkDropList
+      [cdkDropListData]="inProgressTasks"
+      (cdkDropListDropped)="onDrop($event, 'InProgress')"
+      class="task-list"
+    >
+      @for (task of inProgressTasks; track task.id) {
+      <div
+        class="task-card in-progress"
+        [class.blocked]="task.isBlocked"
+        cdkDrag
+        (click)="openEditModal(task)"
+      >
+        <strong>{{ task.title }}</strong>
+        <button class="delete-btn" (click)="$event.stopPropagation(); deleteTask(task.id)">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+        @if (task.isBlocked) {
+        <div class="blocked-msg"><i class="fa-solid fa-lock"></i> Bloqueada</div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="column">
+    <h3><i class="fa-solid fa-check-double"></i> Concluído</h3>
+    <div
+      cdkDropList
+      [cdkDropListData]="doneTasks"
+      (cdkDropListDropped)="onDrop($event, 'Done')"
+      class="task-list"
+    >
+      @for (task of doneTasks; track task.id) {
+      <div class="task-card done" cdkDrag (click)="openEditModal(task)">
+        <strong>{{ task.title }}</strong>
+        <button class="delete-btn" (click)="$event.stopPropagation(); deleteTask(task.id)">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+
+@if (showModal && selectedTask) {
+<div class="modal-overlay" (click)="showModal = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h2><i class="fa-solid fa-pen-to-square"></i> Editar Tarefa</h2>
+
+    <label>Título da Tarefa</label>
+    <input
+      [(ngModel)]="selectedTask.title"
+      class="header-actions input"
+      style="width: 100%; box-sizing: border-box"
+    />
+
+    <label>Responsável</label>
+    <select [(ngModel)]="selectedTask.assignedUserId" class="multi-select" style="height: 45px">
+      <option [ngValue]="null" [disabled]="selectedTask.status !== 'Pending'">
+        {{ selectedTask.status === 'Pending' ? 'Sem responsável' : '⚠️ Deve possuir responsável' }}
+      </option>
+      @for (user of users; track user.id) {
+      <option [value]="user.id">{{ user.name }}</option>
+      }
+    </select>
+
+    <label><i class="fa-solid fa-link"></i> Pré-requisitos (Dependências)</label>
+    <select multiple [(ngModel)]="selectedTask.prerequisiteIds" class="multi-select">
+      <option [value]="0" class="clear-option">--- Nenhuma Dependência (Limpar) ---</option>
+
+      @for (t of tasks; track t.id) { @if (t.id !== selectedTask.id) {
+      <option
+        [value]="t.id"
+        [disabled]="isCircularDependency(t.id)"
+        [title]="isCircularDependency(t.id) ? 'Esta tarefa já depende da atual (Ciclo)' : ''"
+      >
+        {{ t.title }} {{ isCircularDependency(t.id) ? '(Bloqueado: Ciclo)' : '' }}
+      </option>
+      } }
+    </select>
+
+    <p class="helper-text">
+      <i class="fa-solid fa-circle-info"></i>
+      Selecione <b>"Nenhuma"</b> para limpar tudo ou use <b>Ctrl + Clique</b> para marcar várias.
+    </p>
+
+    <div class="modal-actions">
+      <button
+        (click)="deleteTask(selectedTask.id); showModal = false"
+        style="background: #fff5f5; color: #e53e3e; margin-right: auto; border: 1px solid #feb2b2"
+      >
+        <i class="fa-regular fa-trash-can"></i> Excluir Tarefa
+      </button>
+
+      <button (click)="showModal = false" style="background: #edf2f7; color: #4a5568">
+        Cancelar
+      </button>
+      <button class="save-btn" (click)="saveTask()">
+        <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<div class="toast-container">
+  @for (toast of notifications; track toast) {
+  <div class="toast" [class]="toast.type">
+    <i
+      class="fa-solid"
+      [class.fa-circle-exclamation]="toast.type === 'error'"
+      [class.fa-check]="toast.type === 'success'"
+    ></i>
+    {{ toast.message }}
+  </div>
+  }
+</div>
+
+@if (showConfirmModal) {
+<div class="modal-overlay" style="z-index: 2000">
+  <div
+    class="modal-content"
+    style="max-width: 400px; text-align: center; border-top: 5px solid #e53e3e"
+  >
+    <i
+      class="fa-solid fa-triangle-exclamation"
+      style="font-size: 3rem; color: #e53e3e; margin-bottom: 15px"
+    ></i>
+    <h3>Confirmar Exclusão</h3>
+    <p>
+      Deseja realmente excluir a tarefa:<br /><strong>"{{ taskTitleToDelete }}"</strong>?
+    </p>
+    <p style="font-size: 0.85rem; color: #718096">Esta ação não pode ser desfeita.</p>
+
+    <div class="modal-actions" style="justify-content: center; gap: 10px; margin-top: 20px">
+      <button (click)="showConfirmModal = false" style="background: #edf2f7; color: #4a5568">
+        Cancelar
+      </button>
+      <button (click)="confirmDeletion()" style="background: #e53e3e; color: white">
+        Sim, Excluir
+      </button>
+    </div>
+  </div>
+</div>
+}

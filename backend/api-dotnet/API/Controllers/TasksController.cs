@@ -90,6 +90,17 @@ public class TasksController : ControllerBase
 
                 if (user == null) return BadRequest("Usuário não encontrado.");
 
+                if (task.Status == WorkStatus.InProgress)
+                {
+                    var hasTaskInProgress = await _context.Tasks.AnyAsync(t =>
+                        t.AssignedUserId == dto.AssignedUserId &&
+                        t.Status == WorkStatus.InProgress &&
+                        t.Id != id);
+
+                    if (hasTaskInProgress)
+                        return BadRequest(new { message = $"O usuário {user.Name} já possui uma tarefa em andamento." });
+                }
+
                 task.AssignTo(user);
             }
 
@@ -131,39 +142,78 @@ public class TasksController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.Tasks
+            .Include(t => t.Dependencies)    
+            .Include(t => t.IsPrerequisiteFor) 
+            .FirstOrDefaultAsync(t => t.Id == id);
 
-        if (task == null)
-            return NotFound();
+        if (task == null) return NotFound();
+
+        _context.Set<TaskDependency>().RemoveRange(task.Dependencies);
+        _context.Set<TaskDependency>().RemoveRange(task.IsPrerequisiteFor);
 
         _context.Tasks.Remove(task);
-        await _context.SaveChangesAsync();
 
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 
     // POST api/tasks/{id}/dependencies/{prerequisiteId}
-    [HttpPost("{id}/dependencies/{prerequisiteId}")]
-    public async Task<IActionResult> AddDependency(int id, int prerequisiteId)
+    [HttpPost("{id}/dependencies/sync")]
+    public async Task<IActionResult> SyncDependencies(int id, [FromBody] List<int> prerequisiteIds)
     {
         var task = await _context.Tasks
             .Include(t => t.Dependencies)
             .FirstOrDefaultAsync(t => t.Id == id);
 
-        var prerequisite = await _context.Tasks.FindAsync(prerequisiteId);
+        if (task == null) return NotFound();
 
-        if (task == null || prerequisite == null)
-            return NotFound("Tarefa ou pré-requisito não encontrado.");
+        foreach (var preId in prerequisiteIds)
+        {
+            if (await WouldCreateCycle(id, preId))
+            {
+                var preTask = await _context.Tasks.FindAsync(preId);
+                return BadRequest(new
+                {
+                    message = $"Conflito de Ciclo: A tarefa '{preTask?.Title}' não pode ser um pré-requisito porque ela já depende (direta ou indiretamente) desta tarefa atual!"
+                });
+            }
+        }
 
-        try
+        task.Dependencies.Clear();
+        foreach (var preId in prerequisiteIds)
         {
-            task.AddDependency(prerequisite);
-            await _context.SaveChangesAsync();
-            return Ok();
+            var pre = await _context.Tasks.FindAsync(preId);
+            if (pre != null) task.AddDependency(pre);
         }
-        catch (DomainException ex)
+
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    private async Task<bool> WouldCreateCycle(int currentTaskId, int potentialPrerequisiteId)
+    {
+        if (currentTaskId == potentialPrerequisiteId) return true;
+
+        var visited = new HashSet<int>();
+        var stack = new Stack<int>();
+        stack.Push(potentialPrerequisiteId);
+
+        while (stack.Count > 0)
         {
-            return BadRequest(ex.Message);
+            var nextId = stack.Pop();
+            if (nextId == currentTaskId) return true;
+
+            if (visited.Add(nextId))
+            {
+                var deps = await _context.Set<TaskDependency>()
+                    .Where(d => d.TaskId == nextId)
+                    .Select(d => d.PrerequisiteTaskId)
+                    .ToListAsync();
+
+                foreach (var depId in deps) stack.Push(depId);
+            }
         }
+        return false;
     }
 }

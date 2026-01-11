@@ -7,9 +7,10 @@ export enum WorkStatus {
 export interface TaskResponse {
   id: number;
   title: string;
-  status: WorkStatus;
+  status: string;
   assignedUserId?: number;
   assignedUserName?: string;
   isBlocked: boolean;
   prerequisiteTitles: string[];
+  prerequisiteIds?: number[];
 }
