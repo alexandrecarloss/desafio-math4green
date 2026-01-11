@@ -17,7 +17,13 @@
       class="task-list"
     >
       @for (task of pendingTasks; track task.id) {
-      <div class="task-card" [class.blocked]="task.isBlocked" cdkDrag (click)="openEditModal(task)">
+      <div
+        class="task-card"
+        [class.blocked]="task.isBlocked"
+        cdkDrag
+        [cdkDragDisabled]="task.isBlocked"
+        (click)="openEditModal(task)"
+      >
         <strong>{{ task.title }}</strong>
         <button class="delete-btn" (click)="$event.stopPropagation(); deleteTask(task.id)">
           <i class="fa-regular fa-trash-can"></i>
@@ -100,24 +106,30 @@
     </select>
 
     <label><i class="fa-solid fa-link"></i> Pré-requisitos (Dependências)</label>
-    <select multiple [(ngModel)]="selectedTask.prerequisiteIds" class="multi-select">
-      <option [value]="0" class="clear-option">--- Nenhuma Dependência (Limpar) ---</option>
+    <div class="dependency-list">
+      <label class="dependency-item clear">
+        <input
+          type="checkbox"
+          [checked]="selectedTask.prerequisiteIds?.length === 0"
+          (change)="clearDependencies()"
+        />
+        Nenhuma dependência
+      </label>
 
       @for (t of tasks; track t.id) { @if (t.id !== selectedTask.id) {
-      <option
-        [value]="t.id"
-        [disabled]="isCircularDependency(t.id)"
-        [title]="isCircularDependency(t.id) ? 'Esta tarefa já depende da atual (Ciclo)' : ''"
-      >
-        {{ t.title }} {{ isCircularDependency(t.id) ? '(Bloqueado: Ciclo)' : '' }}
-      </option>
+      <label class="dependency-item" [class.disabled]="isCircularDependency(t.id)">
+        <input
+          type="checkbox"
+          [value]="t.id"
+          [checked]="selectedTask.prerequisiteIds?.includes(t.id)"
+          [disabled]="isCircularDependency(t.id)"
+          (change)="toggleDependency(t.id)"
+        />
+        {{ t.title }}
+        @if (isCircularDependency(t.id)) { <span>(Ciclo)</span> }
+      </label>
       } }
-    </select>
-
-    <p class="helper-text">
-      <i class="fa-solid fa-circle-info"></i>
-      Selecione <b>"Nenhuma"</b> para limpar tudo ou use <b>Ctrl + Clique</b> para marcar várias.
-    </p>
+    </div>
 
     <div class="modal-actions">
       <button

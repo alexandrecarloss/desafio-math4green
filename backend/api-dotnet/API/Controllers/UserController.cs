@@ -1,6 +1,4 @@
-﻿using api_dotnet.API.DTO;
-using api_dotnet.Domain.Entities;
-using api_dotnet.Infrastructure.Persistence;
+﻿using api_dotnet.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,7 +47,7 @@ public class UserController : ControllerBase
 
     // PUT api/users/1
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdateUserDto dto)
+    public async Task<IActionResult> Update(int id, User NewUser)
     {
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -57,8 +55,8 @@ public class UserController : ControllerBase
         if (user == null)
             return NotFound();
 
-        if (user.Name != dto.Name)
-            user.ChangeName(dto.Name);
+        if (user.Name != NewUser.Name)
+            user.ChangeName(NewUser.Name);
 
         await _context.SaveChangesAsync();
 

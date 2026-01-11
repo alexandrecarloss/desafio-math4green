@@ -2,10 +2,12 @@
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace api_dotnet.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,7 +18,7 @@ namespace api_dotnet.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false)
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -29,7 +31,7 @@ namespace api_dotnet.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Title = table.Column<string>(type: "TEXT", nullable: false),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     AssignedUserId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
@@ -40,7 +42,8 @@ namespace api_dotnet.Migrations
                         name: "FK_Tasks_Users_AssignedUserId",
                         column: x => x.AssignedUserId,
                         principalTable: "Users",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -66,7 +69,18 @@ namespace api_dotnet.Migrations
                         column: x => x.TaskId,
                         principalTable: "Tasks",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "Id", "Name" },
+                values: new object[,]
+                {
+                    { 1, "Antônio" },
+                    { 2, "Bob" },
+                    { 3, "Carlos" },
+                    { 4, "Deysi" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -75,9 +89,10 @@ namespace api_dotnet.Migrations
                 column: "PrerequisiteTaskId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskDependencies_TaskId",
+                name: "IX_TaskDependencies_TaskId_PrerequisiteTaskId",
                 table: "TaskDependencies",
-                column: "TaskId");
+                columns: new[] { "TaskId", "PrerequisiteTaskId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tasks_AssignedUserId",

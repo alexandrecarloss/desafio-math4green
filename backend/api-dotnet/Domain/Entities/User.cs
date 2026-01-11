@@ -12,6 +12,11 @@ public class User
     {
         ChangeName(name);
     }
+    public User(int id, string name)
+    {
+        Id = id;
+        ChangeName(name);
+    }
 
     public void ChangeName(string name)
     {
@@ -26,6 +31,14 @@ public class User
     public bool HasTaskInProgress()
     {
         return Tasks.Any(t => t.Status == WorkStatus.InProgress);
+    }
+
+    public bool HasAnotherTaskInProgress(int currentTaskId)
+    {
+        return Tasks.Any(t =>
+            t.Status == WorkStatus.InProgress &&
+            t.Id != currentTaskId
+        );
     }
 
 }

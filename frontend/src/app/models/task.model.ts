@@ -1,16 +1,14 @@
-export enum WorkStatus {
-  Pending = 0,
-  InProgress = 1,
-  Done = 2
-}
+export type WorkStatus = 'Pending' | 'InProgress' | 'Done';
 
 export interface TaskResponse {
   id: number;
   title: string;
-  status: string;
+  status: WorkStatus;
+  isBlocked: boolean;
+
   assignedUserId?: number;
   assignedUserName?: string;
-  isBlocked: boolean;
+
+  prerequisiteIds: number[];
   prerequisiteTitles: string[];
-  prerequisiteIds?: number[];
 }

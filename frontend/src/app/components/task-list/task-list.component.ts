@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { TaskService } from '../../services/task.service';
-import { TaskResponse } from '../../models/task.model';
+import { TaskResponse, WorkStatus } from '../../models/task.model';
 import { JsonPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
@@ -136,14 +136,10 @@ export class TaskListComponent implements OnInit {
     return this.tasks.filter((t) => t.status === status);
   }
 
-  changeStatus(task: TaskResponse, newStatus: string) {
-    if (newStatus !== 'Pending') {
-      const blockedBy = this.getMissingPrerequisites(task);
-      if (blockedBy.length > 0) {
-        this.showToast(`Bloqueio! Conclua primeiro: ${blockedBy.join(', ')}`, 'error');
-        this.loadTasks(); 
-        return;
-      }
+ changeStatus(task: TaskResponse, newStatus: WorkStatus) {
+    if (task.isBlocked && newStatus !== 'Pending') {
+      this.showToast("Esta tarefa está bloqueada por dependências.", 'error');
+      return;
     }
 
     this.taskService.updateTask(task.id, { ...task, status: newStatus }).subscribe({
@@ -212,20 +208,23 @@ export class TaskListComponent implements OnInit {
     }
   }
 
-  onDrop(event: CdkDragDrop<TaskResponse[]>, newStatus: string) {
+  onDrop(event: CdkDragDrop<TaskResponse[]>, newStatus: WorkStatus) {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
       const task = event.previousContainer.data[event.previousIndex];
+
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
         event.currentIndex
       );
+
       this.changeStatus(task, newStatus);
     }
   }
+
 
   isTaskBlockedByTitles(task: TaskResponse): boolean {
     if (!task.prerequisiteTitles || task.prerequisiteTitles.length === 0) {
@@ -245,4 +244,27 @@ export class TaskListComponent implements OnInit {
 
     return candidate.prerequisiteTitles?.includes(this.selectedTask.title) || false;
   }
+
+  toggleDependency(id: number) {
+    if (!this.selectedTask) return;
+
+    if (!this.selectedTask.prerequisiteIds) {
+      this.selectedTask.prerequisiteIds = [];
+    }
+
+    const index = this.selectedTask.prerequisiteIds.indexOf(id);
+
+    if (index >= 0) {
+      this.selectedTask.prerequisiteIds.splice(index, 1);
+    } else {
+      this.selectedTask.prerequisiteIds.push(id);
+    }
+  }
+
+  clearDependencies() {
+    if (this.selectedTask) {
+      this.selectedTask.prerequisiteIds = [];
+    }
+  }
+
 }

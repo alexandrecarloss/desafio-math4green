@@ -16,7 +16,6 @@ namespace api_dotnet.Domain.Entities
         public string Title { get; private set; } = null!;
         public WorkStatus Status { get; private set; }
         public bool IsBlocked => Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done);
-
         public int? AssignedUserId { get; private set; }
         public User? AssignedUser { get; private set; }
 

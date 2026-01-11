@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using api_dotnet.Infrastructure.Persistence;
+using api_dotnet.Data;
 
 #nullable disable
 
@@ -24,12 +24,33 @@ namespace api_dotnet.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Antônio"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Bob"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Carlos"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Deysi"
+                        });
                 });
 
             modelBuilder.Entity("api_dotnet.Domain.Entities.TaskDependency", b =>
@@ -48,9 +69,10 @@ namespace api_dotnet.Migrations
 
                     b.HasIndex("PrerequisiteTaskId");
 
-                    b.HasIndex("TaskId");
+                    b.HasIndex("TaskId", "PrerequisiteTaskId")
+                        .IsUnique();
 
-                    b.ToTable("TaskDependencies", (string)null);
+                    b.ToTable("TaskDependencies");
                 });
 
             modelBuilder.Entity("api_dotnet.Domain.Entities.TaskItem", b =>
@@ -67,14 +89,13 @@ namespace api_dotnet.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedUserId");
 
-                    b.ToTable("Tasks", (string)null);
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("api_dotnet.Domain.Entities.TaskDependency", b =>
@@ -88,7 +109,7 @@ namespace api_dotnet.Migrations
                     b.HasOne("api_dotnet.Domain.Entities.TaskItem", "Task")
                         .WithMany("Dependencies")
                         .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("PrerequisiteTask");
@@ -100,7 +121,8 @@ namespace api_dotnet.Migrations
                 {
                     b.HasOne("User", "AssignedUser")
                         .WithMany("Tasks")
-                        .HasForeignKey("AssignedUserId");
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("AssignedUser");
                 });

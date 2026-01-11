@@ -1,7 +1,6 @@
-﻿using api_dotnet.API.DTO;
+﻿using api_dotnet.Data;
 using api_dotnet.Domain.Entities;
 using api_dotnet.Domain.Exceptions;
-using api_dotnet.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,114 +21,77 @@ public class TasksController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var tasks = await _context.Tasks
-            .Include(t => t.AssignedUser)
-            .Include(t => t.Dependencies)
-                .ThenInclude(d => d.PrerequisiteTask)
-            .Select(t => new TaskResponseDto
-            {
-                Id = t.Id,
-                Title = t.Title,
-                Status = t.Status,
-                AssignedUserId = t.AssignedUserId,
-                AssignedUserName = t.AssignedUser != null ? t.AssignedUser.Name : "Não atribuída",
-                IsBlocked = t.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),
-                PrerequisiteTitles = t.Dependencies.Select(d => d.PrerequisiteTask.Title).ToList()
-            })
-            .ToListAsync();
+        var tasks = await _context.TasksWithDetails.ToListAsync();
 
-        return Ok(tasks);
+        var result = tasks.Select(TaskResponseDto.FromEntity).ToList();
+
+        return Ok(result);
     }
 
     // GET api/tasks/1
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var task = await _context.Tasks.FindAsync(id);
+        var task = await _context.TasksWithDetails
+        .FirstOrDefaultAsync(t => t.Id == id);
 
         if (task == null) return NotFound();
 
         return Ok(TaskResponseDto.FromEntity(task));
+
     }
 
     // POST api/tasks
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTaskDto dto)
+    public async Task<IActionResult> Create([FromBody] TaskCreateUpdateDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Title))
-            return BadRequest("O título é obrigatório.");
+            return BadRequest(new { message = "O título é obrigatório." });
 
         var task = new TaskItem(dto.Title);
         _context.Tasks.Add(task);
         await _context.SaveChangesAsync();
         return Ok(TaskResponseDto.FromEntity(task));
+
     }
 
     // PUT api/tasks/1
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdateTaskDto dto)
+    public async Task<IActionResult> Update(int id, TaskCreateUpdateDto dto)
     {
-        var task = await _context.Tasks
-            .Include(t => t.AssignedUser)
-            .Include(t => t.Dependencies)
-                .ThenInclude(d => d.PrerequisiteTask)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var task = await _context.TasksWithDetails
+        .FirstOrDefaultAsync(t => t.Id == id);
+
 
         if (task == null) return NotFound();
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(dto.Title))
+            if (dto.Title != null)
                 task.ChangeTitle(dto.Title);
 
-            if (dto.AssignedUserId.HasValue && task.AssignedUserId != dto.AssignedUserId)
+            if (dto.AssignedUserId.HasValue)
             {
                 var user = await _context.Users
                     .Include(u => u.Tasks)
                     .FirstOrDefaultAsync(u => u.Id == dto.AssignedUserId.Value);
 
-                if (user == null) return BadRequest("Usuário não encontrado.");
+                if (user == null)
+                    return BadRequest(new { message = "Usuário não encontrado" });
 
-                if (task.Status == WorkStatus.InProgress)
-                {
-                    var hasTaskInProgress = await _context.Tasks.AnyAsync(t =>
-                        t.AssignedUserId == dto.AssignedUserId &&
-                        t.Status == WorkStatus.InProgress &&
-                        t.Id != id);
-
-                    if (hasTaskInProgress)
-                        return BadRequest(new { message = $"O usuário {user.Name} já possui uma tarefa em andamento." });
-                }
+                if (dto.Status == WorkStatus.InProgress && user.HasAnotherTaskInProgress(id))
+                    return BadRequest(new { message = "Usuário já possui tarefa em andamento" });
 
                 task.AssignTo(user);
             }
 
-            if (dto.Status.HasValue && task.Status != dto.Status.Value)
-            {
-                if (dto.Status == WorkStatus.InProgress)
-                {
-                    task.Start();
-                }
-                else if (dto.Status == WorkStatus.Done)
-                {
-                    task.Complete();
-                }
-                else
-                {
-                    task.UpdateStatus(dto.Status.Value);
-                }
-            }
+            if (dto.Status.HasValue)
+                task.UpdateStatus(dto.Status.Value);
+
 
             await _context.SaveChangesAsync();
 
-            return Ok(new TaskResponseDto
-            {
-                Id = task.Id,
-                Title = task.Title,
-                Status = task.Status,
-                IsBlocked = task.Dependencies.Any(d => d.PrerequisiteTask.Status != WorkStatus.Done),
-                AssignedUserName = task.AssignedUser?.Name
-            });
+            return Ok(TaskResponseDto.FromEntity(task));
         }
         catch (DomainException ex)
         {
