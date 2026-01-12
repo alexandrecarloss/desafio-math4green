@@ -69,31 +69,29 @@ Ambiente: Node.js 24.11.1 e npm 11.6.2.
 Arquitetura: Service Pattern e DTOs para desacoplamento de camadas.
 
 ## 🚀 Como Executar o Projeto
+
 Pré-requisitos
 SDK do .NET 10.0.101 ou superior.
 
 Node.js e Angular CLI.
 
 Passo a Passo
-Clone o repositório: git clone https://github.com/alexandrecarloss/desafio-math4green
+1. **Clone o repositório:**
+   `git clone https://github.com/alexandrecarloss/desafio-math4green`
 
-Configuração do Backend:
+2. **Configuração do Backend:**
+   * Navegue até a pasta: `backend/api-dotnet/API`
+   * Execute: `dotnet ef database update`
+   * Execute: `dotnet run`
 
-Navegue até backend/api-dotnet/API
+3. **Configuração do Frontend:**
+   * Navegue até a pasta: `frontend`
+   * Execute: `npm install`
+   * Execute: `ng serve`
 
-Execute: dotnet ef database update
+4. **Acesse http://localhost:4200**
 
-Execute: dotnet run
-
-Configuração do Frontend:
-
-Navegue até a pasta do projeto Angular.
-
-Execute: npm install
-
-Execute: ng serve
-
-Acesse http://localhost:4200
+---
 
 👨‍💻 Desenvolvido por:
-Carlos Alexandre 🚀 LinkedIn | GitHub
+**Carlos Alexandre** 🚀 [LinkedIn](https://www.linkedin.com/in/alexandrecarloss/) | [GitHub](https://github.com/alexandrecarloss/)
