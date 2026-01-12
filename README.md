@@ -1,8 +1,8 @@
-🚀 Task Flow: Gestor de Tarefas com Grafo de Dependências
+# 🚀 Task Flow: Gestor de Tarefas com Grafo de Dependências
 
 Este projeto é uma solução Full Stack desenvolvida para um desafio técnico, focada em resolver problemas complexos de fluxo de trabalho e regras de negócio rígidas. O sistema gerencia tarefas através de um quadro Kanban, aplicando restrições de dependência e controle de carga de trabalho.
 
-🎯 O Desafio
+## 🎯 O Desafio
 O objetivo era criar um sistema funcional onde:
 
 Tarefas possuem pré-requisitos: Uma tarefa não pode ser concluída se suas dependências não estiverem prontas.
@@ -13,7 +13,7 @@ Prevenção de Ciclos: O sistema deve impedir dependências circulares (ex: A de
 
 Feedback Visual: Interface clara indicando bloqueios e restrições de movimento.
 
-📸 Visual do Projeto
+## 📸 Visual do Projeto
 
 ### 1. Quadro Kanban Principal
 ![Quadro Kanban Principal](assets/tela-tsk-flow.png)
@@ -21,6 +21,7 @@ Feedback Visual: Interface clara indicando bloqueios e restrições de movimento
 
 ### 2. Modelagem de Dados (UML)
 ![Diagrama de Classes UML](assets/diagrama-uml.png)
+
 *Estrutura de classes evidenciando a relação de auto-relacionamento entre tarefas.*
 
 #### 3. Edição de Tarefas
@@ -35,25 +36,25 @@ Feedback Visual: Interface clara indicando bloqueios e restrições de movimento
 ![Documentação da API (Swagger)](assets/swagger.png)
 *Visualização e teste dos endpoints da API desenvolvida em .NET 10.*
 
-✨ Funcionalidades Técnicas
+## ✨ Funcionalidades Técnicas
 
-🧠 Algoritmo de Detecção de Ciclos (DFS)
+### 🧠 Algoritmo de Detecção de Ciclos (DFS)
 
 Para garantir a integridade dos dados, implementei um algoritmo de busca em profundidade (DFS - Depth First Search) no Backend. Antes de salvar qualquer nova dependência, o sistema percorre o grafo de tarefas para verificar se a conexão criaria um loop infinito.
 
-🛡️ Validação de Integridade no Backend
+### 🛡️ Validação de Integridade no Backend
 A regra de negócio é protegida no TaskService:
 
 Carga de Trabalho: Validação via Entity Framework para garantir que um usuário não tenha múltiplos registros InProgress.
 
 Estado de Bloqueio: Verificação de pré-requisitos antes de permitir a conclusão de uma tarefa.
 
-🎨 Kanban Inteligente (Angular)
+### 🎨 Kanban Inteligente (Angular)
 Bloqueio Visual: Cards bloqueados recebem estilização em tons de cinza e ícones de cadeado.
 
 Drag & Drop Restritivo: O sistema intercepta movimentos inválidos e exibe notificações (Toasts) explicativas.
 
-🛠️ Stack Tecnológica
+## 🛠️ Stack Tecnológica
 Backend: .NET 10.0.101 (C#), Entity Framework Core.
 
 Frontend: Angular 21.0.5 (Standalone Components), Angular CDK (Drag & Drop).
@@ -62,7 +63,7 @@ Ambiente: Node.js 24.11.1 e npm 11.6.2.
 
 Arquitetura: Service Pattern e DTOs para desacoplamento de camadas.
 
-🚀 Como Executar o Projeto
+## 🚀 Como Executar o Projeto
 Pré-requisitos
 SDK do .NET 10.0.101 ou superior.
 
