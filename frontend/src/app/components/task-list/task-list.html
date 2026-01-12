@@ -96,77 +96,79 @@
 <div class="modal-overlay" (click)="showModal = false">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <h2><i class="fa-solid fa-pen-to-square"></i> Editar Tarefa</h2>
+    <div class="modal-body">
 
-    <label>Título da Tarefa</label>
-    <input
-      [(ngModel)]="selectedTask.title"
-      class="header-actions input"
-      style="width: 100%; box-sizing: border-box"
-    />
-
-    <label>Responsável</label>
-    <select [(ngModel)]="selectedTask.assignedUserId" class="multi-select" style="height: 45px">
-      <option [ngValue]="null" [disabled]="selectedTask.status !== 'Pending'">
-        {{ selectedTask.status === 'Pending' ? 'Sem responsável' : '⚠️ Deve possuir responsável' }}
-      </option>
-      @for (user of users; track user.id) {
-      <option [value]="user.id">{{ user.name }}</option>
-      }
-    </select>
-
-    <label>Status</label>
-    <select [(ngModel)]="selectedTask.status" class="multi-select" style="height: 45px">
-      <option value="Pending">Pendente</option>
-      <option value="InProgress">Em Andamento</option>
-      <option value="Done">Concluído</option>
-    </select>
-
-    <label><i class="fa-solid fa-link"></i> Pré-requisitos (Dependências)</label>
-    <div class="dependency-list">
-      <label class="dependency-item clear">
-        <input
-          type="checkbox"
-          [checked]="selectedTask.prerequisiteIds?.length === 0"
-          (change)="clearDependencies()"
-        />
-        Nenhuma dependência
-      </label>
-
-      @for (t of tasks; track t.id) { @if (t.id !== selectedTask.id) {
-      <label class="dependency-item" [class.disabled]="isCircularDependency(t.id)">
-        <input
-          type="checkbox"
-          [value]="t.id"
-          [checked]="selectedTask.prerequisiteIds?.includes(t.id)"
-          [disabled]="isCircularDependency(t.id)"
-          (change)="toggleDependency(t.id)"
-        />
-        {{ t.title }}
-        @if (isCircularDependency(t.id)) { <span>(Ciclo)</span> }
-      </label>
-      } }
-    </div>
-
-    <div class="modal-actions">
-      <button
-        (click)="deleteTask(selectedTask.id); showModal = false"
-        style="background: #fff5f5; color: #e53e3e; margin-right: auto; border: 1px solid #feb2b2"
-      >
-        <i class="fa-regular fa-trash-can"></i> Excluir Tarefa
-      </button>
-
-      <button (click)="showModal = false" style="background: #edf2f7; color: #4a5568">
-        Cancelar
-      </button>
-      <button class="save-btn" (click)="saveTask()" [disabled]="isSaving">
-        <i
-          class="fa-solid"
-          [class.fa-floppy-disk]="!isSaving"
-          [class.fa-spinner]="isSaving"
-          [class.fa-spin]="isSaving"
-        ></i>
-        {{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}
-      </button>
+      <label>Título da Tarefa</label>
+      <input
+        [(ngModel)]="selectedTask.title"
+        class="header-actions input"
+        style="width: 100%; box-sizing: border-box"
+      />
+  
+      <label>Responsável</label>
+      <select [(ngModel)]="selectedTask.assignedUserId" class="multi-select" style="height: 45px">
+        <option [ngValue]="null" [disabled]="selectedTask.status !== 'Pending'">
+          {{ selectedTask.status === 'Pending' ? 'Sem responsável' : '⚠️ Deve possuir responsável' }}
+        </option>
+        @for (user of users; track user.id) {
+        <option [value]="user.id">{{ user.name }}</option>
+        }
+      </select>
+  
+      <label>Status</label>
+      <select [(ngModel)]="selectedTask.status" class="multi-select" style="height: 45px">
+        <option value="Pending">Pendente</option>
+        <option value="InProgress">Em Andamento</option>
+        <option value="Done">Concluído</option>
+      </select>
+  
+      <label><i class="fa-solid fa-link"></i> Pré-requisitos (Dependências)</label>
+      <div class="dependency-list">
+        <label class="dependency-item clear">
+          <input
+            type="checkbox"
+            [checked]="selectedTask.prerequisiteIds?.length === 0"
+            (change)="clearDependencies()"
+          />
+          Nenhuma dependência
+        </label>
+  
+        @for (t of tasks; track t.id) { @if (t.id !== selectedTask.id) {
+        <label class="dependency-item" [class.disabled]="isCircularDependency(t.id)">
+          <input
+            type="checkbox"
+            [value]="t.id"
+            [checked]="selectedTask.prerequisiteIds?.includes(t.id)"
+            [disabled]="isCircularDependency(t.id)"
+            (change)="toggleDependency(t.id)"
+          />
+          {{ t.title }}
+          @if (isCircularDependency(t.id)) { <span>(Ciclo)</span> }
+        </label>
+        } }
+      </div>
+  
+      <div class="modal-actions">
+        <button
+          (click)="deleteTask(selectedTask.id); showModal = false"
+         style="background: #fff5f5; color: #e53e3e; margin-right: auto; border: 1px solid #feb2b2; padding: 10px 15px; border-radius: 10px; cursor: pointer;"
+        >
+          <i class="fa-regular fa-trash-can"></i> Excluir Tarefa
+        </button>
+  
+        <button (click)="showModal = false" style="background: #edf2f7; color: #4a5568">
+          Cancelar
+        </button>
+        <button class="save-btn" (click)="saveTask()" [disabled]="isSaving">
+          <i
+            class="fa-solid"
+            [class.fa-floppy-disk]="!isSaving"
+            [class.fa-spinner]="isSaving"
+            [class.fa-spin]="isSaving"
+          ></i>
+          {{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>
