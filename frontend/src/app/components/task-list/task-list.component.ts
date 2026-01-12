@@ -1,17 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { TaskService } from '../../services/task.service';
 import { TaskResponse, WorkStatus } from '../../models/task.model';
 import { JsonPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { ChangeDetectorRef } from '@angular/core';
+import {
+  DragDropModule,
+  CdkDragDrop,
+  moveItemInArray,
+  transferArrayItem,
+} from '@angular/cdk/drag-drop';
 import { User } from '../../models/user.model';
-interface Toast { message: string; type: 'error' | 'success' }
+
+interface Toast {
+  message: string;
+  type: 'error' | 'success';
+}
 
 @Component({
   selector: 'app-task-list',
   standalone: true,
-  imports: [JsonPipe, CommonModule, FormsModule, DragDropModule], 
+  imports: [JsonPipe, CommonModule, FormsModule, DragDropModule],
   templateUrl: './task-list.html',
   styleUrls: ['./task-list.css'],
 })
@@ -28,11 +36,19 @@ export class TaskListComponent implements OnInit {
   showConfirmModal = false;
   taskIdToDelete: number | null = null;
   taskTitleToDelete: string = '';
+  isLoading = false;
+  isSaving = false;
+
+  constructor(private taskService: TaskService, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    this.loadTasks();
+    this.loadUsers();
+  }
 
   showToast(message: string, type: 'error' | 'success' = 'error') {
     const toast: Toast = { message, type };
     this.notifications.push(toast);
-
     setTimeout(() => {
       const index = this.notifications.indexOf(toast);
       if (index > -1) {
@@ -41,127 +57,150 @@ export class TaskListComponent implements OnInit {
       }
     }, 4000);
   }
-  constructor(private taskService: TaskService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void {
+  private extractErrorMessage(err: any): string {
+    if (!err) return 'Erro inesperado';
+    if (typeof err.error === 'string') return err.error;
+    if (err.error?.message) return err.error.message;
+    if (err.message) return err.message;
+    return 'Erro ao processar requisição';
+  }
+
+  private handleHttpError(err: any) {
+    const msg = this.extractErrorMessage(err);
+    this.showToast(msg, 'error');
     this.loadTasks();
-    this.loadUsers();
   }
 
   loadUsers() {
-    this.taskService.getUsers().subscribe(data => this.users = data);
+    this.taskService.getUsers().subscribe((data) => (this.users = data));
   }
 
-  openEditModal(task: TaskResponse) {
-    const currentIds = this.tasks
-      .filter(t => task.prerequisiteTitles?.includes(t.title))
-      .map(t => t.id);
-
-    this.selectedTask = { 
-      ...task, 
-      prerequisiteIds: currentIds 
-    };
-    this.showModal = true;
-  }
-  
   loadTasks() {
-    this.taskService.getTasks().subscribe((data) => {
-      this.tasks = data;
-      this.filterTasks();
-      this.cdr.detectChanges();
+    this.isLoading = true;
+    this.taskService.getTasks().subscribe({
+      next: (data) => {
+        this.tasks = data;
+        this.filterTasks();
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.handleHttpError(err);
+        this.isLoading = false;
+      },
     });
   }
 
   filterTasks() {
-    this.pendingTasks = this.tasks.filter(t => t.status === 'Pending');
-    this.inProgressTasks = this.tasks.filter(t => t.status === 'InProgress');
-    this.doneTasks = this.tasks.filter(t => t.status === 'Done');
+    this.pendingTasks = this.tasks.filter((t) => t.status === 'Pending');
+    this.inProgressTasks = this.tasks.filter((t) => t.status === 'InProgress');
+    this.doneTasks = this.tasks.filter((t) => t.status === 'Done');
   }
-  
+
+  openEditModal(task: TaskResponse) {
+    const currentIds = this.tasks
+      .filter((t) => task.prerequisiteTitles?.includes(t.title))
+      .map((t) => t.id);
+
+    this.selectedTask = { ...task, prerequisiteIds: currentIds };
+    this.showModal = true;
+  }
+
   saveTask() {
-    if (!this.selectedTask) return;
-    
-    if (!this.selectedTask.assignedUserId || this.selectedTask.assignedUserId === null) {
-      if (this.selectedTask.status === 'InProgress' || this.selectedTask.status === 'Done') {
-        this.showToast("Uma tarefa em andamento ou concluída deve ter um responsável.", "error");
-        return;
-      }
+    if (!this.selectedTask || this.isSaving) return;
+
+    if (
+      !this.selectedTask.assignedUserId &&
+      (this.selectedTask.status === 'InProgress' || this.selectedTask.status === 'Done')
+    ) {
+      this.showToast('Uma tarefa em andamento ou concluída deve ter um responsável.', 'error');
+      return;
     }
 
-    if (this.selectedTask.status === 'InProgress' && this.selectedTask.assignedUserId) {
-      const userAlreadyBusy = this.inProgressTasks.some(t => 
-        t.assignedUserId === Number(this.selectedTask!.assignedUserId) && 
-        t.id !== this.selectedTask!.id
-      );
-
-      if (userAlreadyBusy) {
-        this.showToast("Este usuário já possui uma tarefa em andamento.", "error");
-        return;
-      }
-    }
-
-    let pIds = (this.selectedTask.prerequisiteIds || []).map(id => Number(id));
-    if (pIds.includes(0)) pIds = [];
+    this.isSaving = true;
+    let pIds = (this.selectedTask.prerequisiteIds || []).map((id) => Number(id));
 
     const dto = {
       title: this.selectedTask.title,
-      assignedUserId: this.selectedTask.assignedUserId ? Number(this.selectedTask.assignedUserId) : null,
-      status: this.selectedTask.status
+      assignedUserId: this.selectedTask.assignedUserId
+        ? Number(this.selectedTask.assignedUserId)
+        : null,
+      status: this.selectedTask.status,
     };
 
     this.taskService.updateTask(this.selectedTask.id, dto).subscribe({
       next: () => {
         this.taskService.syncDependencies(this.selectedTask!.id, pIds).subscribe({
           next: () => {
-            this.finalizeSave(); 
+            this.isSaving = false;
+            this.finalizeSave();
           },
           error: (err) => {
-            this.showToast(err.error?.message || "Erro de dependência", "error");
-          }
+            this.isSaving = false;
+            this.showToast(this.extractErrorMessage(err), 'error');
+          },
         });
       },
       error: (err) => {
-        this.showToast(err.error?.message || "Erro ao salvar tarefa", "error");
-      }
+        this.isSaving = false;
+        this.showToast(this.extractErrorMessage(err), 'error');
+      },
     });
   }
 
   private finalizeSave() {
     this.showModal = false;
     this.loadTasks();
-    this.showToast("Tarefa e dependências atualizadas!", "success");
+    this.showToast('Tarefa e dependências atualizadas!', 'success');
   }
 
-  getTasksByStatus(status: string) {
-    return this.tasks.filter((t) => t.status === status);
-  }
-
- changeStatus(task: TaskResponse, newStatus: WorkStatus) {
-    if (task.isBlocked && newStatus !== 'Pending') {
-      this.showToast("Esta tarefa está bloqueada por dependências.", 'error');
+  changeStatus(task: TaskResponse, newStatus: WorkStatus) {
+    if (newStatus !== 'Pending' && this.isTaskBlockedByTitles(task)) {
+      const blockers = this.getMissingPrerequisites(task).join(', ');
+      this.showToast(`Bloqueada! Conclua primeiro: ${blockers}`, 'error');
+      this.loadTasks();
       return;
     }
+    const dto = {
+      status: newStatus,
+      assignedUserId: task.assignedUserId,
+    };
 
-    this.taskService.updateTask(task.id, { ...task, status: newStatus }).subscribe({
+    this.taskService.updateTask(task.id, dto).subscribe({
       next: () => {
-        this.showToast("Status atualizado!", "success");
+        this.showToast('Status atualizado!', 'success');
         this.loadTasks();
       },
-      error: (err) => {
-        const errorMessage = err.message || "Erro ao validar regras";
-        this.showToast(errorMessage, "error");
-        this.loadTasks();
-      }
+      error: (err) => this.handleHttpError(err),
     });
   }
 
   getMissingPrerequisites(task: TaskResponse): string[] {
-    if (!task.prerequisiteTitles || task.prerequisiteTitles.length === 0) return [];
-    
-    return task.prerequisiteTitles.filter(title => {
-      const preTask = this.tasks.find(t => t.title === title);
+    if (!task.prerequisiteTitles) return [];
+    return task.prerequisiteTitles.filter((title) => {
+      const preTask = this.tasks.find((t) => t.title === title);
       return !preTask || preTask.status !== 'Done';
     });
+  }
+
+  isTaskBlockedByTitles(task: TaskResponse): boolean {
+    return this.getMissingPrerequisites(task).length > 0;
+  }
+
+  isCircularDependency(candidateId: number): boolean {
+    if (!this.selectedTask) return false;
+    const candidate = this.tasks.find((t) => t.id === candidateId);
+    return candidate?.prerequisiteTitles?.includes(this.selectedTask.title) || false;
+  }
+
+  toggleDependency(id: number) {
+    if (!this.selectedTask) return;
+    this.selectedTask.prerequisiteIds = this.selectedTask.prerequisiteIds || [];
+    const index = this.selectedTask.prerequisiteIds.indexOf(id);
+    index >= 0
+      ? this.selectedTask.prerequisiteIds.splice(index, 1)
+      : this.selectedTask.prerequisiteIds.push(id);
   }
 
   createTask() {
@@ -173,20 +212,18 @@ export class TaskListComponent implements OnInit {
   }
 
   deleteTask(id: number) {
-    const taskToDelete = this.tasks.find(t => t.id === id);
+    const taskToDelete = this.tasks.find((t) => t.id === id);
     if (!taskToDelete) return;
 
-    const isPrerequisite = this.tasks.some(t => 
-      t.prerequisiteTitles?.includes(taskToDelete.title)
-    );
+    const dependentTasks = this.tasks
+      .filter((t) => t.prerequisiteTitles?.includes(taskToDelete.title))
+      .map((t) => t.title);
 
-    if (isPrerequisite) {
-      const dependentTasks = this.tasks
-        .filter(t => t.prerequisiteTitles?.includes(taskToDelete.title))
-        .map(t => t.title)
-        .join(', ');
-
-      this.showToast(`Erro: Esta tarefa é pré-requisito de: [${dependentTasks}]`, 'error');
+    if (dependentTasks.length > 0) {
+      this.showToast(
+        `Erro: Esta tarefa é pré-requisito de: [${dependentTasks.join(', ')}]`,
+        'error'
+      );
       return;
     }
     this.taskIdToDelete = id;
@@ -195,15 +232,15 @@ export class TaskListComponent implements OnInit {
   }
 
   confirmDeletion() {
-    if (this.taskIdToDelete !== null) {
+    if (this.taskIdToDelete) {
       this.taskService.deleteTask(this.taskIdToDelete).subscribe({
         next: () => {
-          this.showToast(`Tarefa removida com sucesso`, "success");
+          this.showToast(`Tarefa removida`, 'success');
           this.showConfirmModal = false;
           this.showModal = false;
           this.loadTasks();
         },
-        error: () => this.showToast("Erro ao excluir no servidor", "error")
+        error: (err) => this.showToast(this.extractErrorMessage(err), 'error'),
       });
     }
   }
@@ -213,51 +250,13 @@ export class TaskListComponent implements OnInit {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
       const task = event.previousContainer.data[event.previousIndex];
-
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
         event.currentIndex
       );
-
       this.changeStatus(task, newStatus);
-    }
-  }
-
-
-  isTaskBlockedByTitles(task: TaskResponse): boolean {
-    if (!task.prerequisiteTitles || task.prerequisiteTitles.length === 0) {
-      return false;
-    }
-    return task.prerequisiteTitles.some(preTitle => {
-      const preTask = this.tasks.find(t => t.title === preTitle);
-      return preTask && preTask.status !== 'Done';
-    });
-  }
-
-  isCircularDependency(candidateId: number): boolean {
-    if (!this.selectedTask) return false;
-    
-    const candidate = this.tasks.find(t => t.id === candidateId);
-    if (!candidate) return false;
-
-    return candidate.prerequisiteTitles?.includes(this.selectedTask.title) || false;
-  }
-
-  toggleDependency(id: number) {
-    if (!this.selectedTask) return;
-
-    if (!this.selectedTask.prerequisiteIds) {
-      this.selectedTask.prerequisiteIds = [];
-    }
-
-    const index = this.selectedTask.prerequisiteIds.indexOf(id);
-
-    if (index >= 0) {
-      this.selectedTask.prerequisiteIds.splice(index, 1);
-    } else {
-      this.selectedTask.prerequisiteIds.push(id);
     }
   }
 
@@ -266,5 +265,4 @@ export class TaskListComponent implements OnInit {
       this.selectedTask.prerequisiteIds = [];
     }
   }
-
 }

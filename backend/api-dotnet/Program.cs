@@ -1,4 +1,5 @@
 using api_dotnet.Data;
+using api_dotnet.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -23,6 +24,7 @@ builder.Services.AddCors(options =>
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<TaskService>();
 
 // Banco SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>

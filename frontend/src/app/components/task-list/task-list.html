@@ -1,3 +1,8 @@
+@if (isLoading) {
+  <div class="loading-overlay">
+    <i class="fa-solid fa-spinner fa-spin"></i> Carregando tarefas...
+  </div>
+}
 <div class="header-actions">
   <input
     [(ngModel)]="newTaskTitle"
@@ -19,11 +24,15 @@
       @for (task of pendingTasks; track task.id) {
       <div
         class="task-card"
-        [class.blocked]="task.isBlocked"
+        [class.blocked]="task.isBlocked || !task.assignedUserId"
         cdkDrag
-        [cdkDragDisabled]="task.isBlocked"
+        [cdkDragDisabled]="task.isBlocked || !task.assignedUserId"
         (click)="openEditModal(task)"
       >
+        @if (!task.assignedUserId) {
+        <div class="blocked-msg"><i class="fa-solid fa-user-xmark"></i> Sem responsável</div>
+        }
+
         <strong>{{ task.title }}</strong>
         <button class="delete-btn" (click)="$event.stopPropagation(); deleteTask(task.id)">
           <i class="fa-regular fa-trash-can"></i>
@@ -105,6 +114,13 @@
       }
     </select>
 
+    <label>Status</label>
+    <select [(ngModel)]="selectedTask.status" class="multi-select" style="height: 45px">
+      <option value="Pending">Pendente</option>
+      <option value="InProgress">Em Andamento</option>
+      <option value="Done">Concluído</option>
+    </select>
+
     <label><i class="fa-solid fa-link"></i> Pré-requisitos (Dependências)</label>
     <div class="dependency-list">
       <label class="dependency-item clear">
@@ -142,8 +158,14 @@
       <button (click)="showModal = false" style="background: #edf2f7; color: #4a5568">
         Cancelar
       </button>
-      <button class="save-btn" (click)="saveTask()">
-        <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações
+      <button class="save-btn" (click)="saveTask()" [disabled]="isSaving">
+        <i
+          class="fa-solid"
+          [class.fa-floppy-disk]="!isSaving"
+          [class.fa-spinner]="isSaving"
+          [class.fa-spin]="isSaving"
+        ></i>
+        {{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}
       </button>
     </div>
   </div>

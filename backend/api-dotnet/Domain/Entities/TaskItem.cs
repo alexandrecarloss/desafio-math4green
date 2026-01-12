@@ -8,9 +8,10 @@ namespace api_dotnet.Domain.Entities
 
         public TaskItem(string title)
         {
-            Title = title;
+            ChangeTitle(title);
             Status = WorkStatus.Pending;
         }
+
 
         public int Id { get; private set; }
         public string Title { get; private set; } = null!;
