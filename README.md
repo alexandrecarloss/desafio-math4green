@@ -1,5 +1,12 @@
 # 🚀 Task Flow: Gestor de Tarefas com Grafo de Dependências
 
+### 🛠️ Tecnologias Utilizadas
+
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512bd4?style=for-the-badge&logo=dotnet)
+![Angular 21](https://img.shields.io/badge/Angular-21.0-dd0031?style=for-the-badge&logo=angular)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+
 Este projeto é uma solução Full Stack desenvolvida para um desafio técnico, focada em resolver problemas complexos de fluxo de trabalho e regras de negócio rígidas. O sistema gerencia tarefas através de um quadro Kanban, aplicando restrições de dependência e controle de carga de trabalho.
 
 ## 🎯 O Desafio
@@ -91,4 +98,4 @@ Execute: ng serve
 Acesse http://localhost:4200
 
 👨‍💻 Desenvolvido por:
-Alexandre Carlos 🚀 LinkedIn | GitHub
+Carlos Alexandre 🚀 LinkedIn | GitHub
